@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статус ремонта · ГрандМедтех</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 10px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .content { padding: 30px; }
+        
+        .search-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e0e0e0;
+        }
+        .search-section h3 { color: #1a73e8; margin-bottom: 15px; font-size: 16px; }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; font-size: 14px; }
+        .input-group input {
+            width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0;
+            border-radius: 8px; font-size: 16px; transition: border-color 0.3s;
+        }
+        .input-group input:focus { outline: none; border-color: #1a73e8; }
+        
+        .button-group { display: flex; gap: 10px; }
+        button {
+            flex: 1; padding: 12px 24px; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;
+        }
+        .btn-primary { background: #1a73e8; color: white; }
+        .btn-primary:hover:not(:disabled) { background: #1557b0; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4); }
+        .btn-secondary { background: #f5f5f5; color: #333; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .results-header { font-size: 18px; font-weight: 600; color: #333; margin-top: 10px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e0e0e0; }
+        #results-container { min-height: 50px; }
+        
+        .result-item {
+            background: #fff; border: 2px solid #e0e0e0; border-radius: 8px;
+            padding: 15px; margin-bottom: 20px; transition: all 0.3s;
+        }
+        .result-item:hover { border-color: #1a73e8; box-shadow: 0 2px 8px rgba(26, 115, 232, 0.2); }
+
+        .result-field { display: flex; margin-bottom: 4px; padding: 2px 0; font-size: 14px; line-height: 1.4; }
+        .field-label { font-weight: 600; min-width: 150px; color: #333; flex-shrink: 0; }
+        .field-value { color: #222; flex: 1; }
+        .field-value.stage-highlight {
+            background: #e8f0fe;
+            padding: 0 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            color: #1a73e8;
+            display: inline-block;
+        }
+        .field-value.stage-highlight.final-stage {
+            background: #e6f7e6;
+            color: #1e7e34;
+            border: 1px solid #b7e0b7;
+        }
+        
+        .no-data { text-align: center; padding: 30px; color: #999; font-size: 16px; }
+
+        /* ШКАЛА ПРОГРЕССА */
+        .progress-wrapper {
+            margin-top: 12px; 
+            padding: 12px 6px 6px 6px; 
+            background: #f8f9fa;
+            border-radius: 10px; 
+            border: 1px solid #e0e0e0;
+        }
+        .progress-title { text-align: center; font-size: 13px; color: #444; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.3px; }
+        .stepper { 
+            display: flex; 
+            justify-content: space-between; 
+            position: relative; 
+            max-width: 700px; 
+            margin: 0 auto;
+            padding: 0;
+        }
+        .stepper::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #e0e0e0;
+            z-index: 0;
+        }
+        .step {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            cursor: pointer;
+        }
+        .step-circle {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #fff;
+            border: 3px solid #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 12px;
+            color: #999;
+            transition: all 0.3s ease;
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 2;
+        }
+        .step-label {
+            font-size: 10px;
+            text-align: center;
+            color: #999;
+            line-height: 1.2;
+            transition: color 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        .step.active .step-circle {
+            background: #1a73e8;
+            border-color: #1a73e8;
+            color: white;
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+        }
+        .step.active .step-label {
+            color: #1a73e8;
+            font-weight: 600;
+        }
+        .step.final-step .step-circle {
+            background: #28a745 !important;
+            border-color: #28a745 !important;
+            color: white !important;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.3) !important;
+        }
+        .step.final-step .step-label {
+            color: #1e7e34 !important;
+            font-weight: 700 !important;
+        }
+        .step.final-step.active::after {
+            background: #28a745 !important;
+        }
+        .step:last-child::after {
+            display: none !important;
+        }
+        .step:not(.active)::after {
+            display: none;
+        }
+        .step.active::after {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            width: 100%;
+            height: 3px;
+            background: #1a73e8;
+            z-index: 1;
+        }
+        .step.final-step.active::after {
+            background: #28a745 !important;
+        }
+        .step.active.no-line-after::after {
+            display: none;
+        }
+
+        /* ВСПЛЫВАЮЩАЯ ПОДСКАЗКА */
+        .step-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #2c3e50;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            line-height: 1.5;
+            width: 220px;
+            text-align: center;
+            font-weight: 400;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+            z-index: 100;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            pointer-events: none;
+            white-space: normal;
+        }
+        .step-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #2c3e50;
+        }
+        .step:hover .step-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        /* Для мобильных — чуть шире и смещаем вверх */
+        @media (max-width: 768px) {
+            .step-tooltip {
+                width: 180px;
+                font-size: 11px;
+                bottom: calc(100% + 16px);
+            }
+        }
+
+        .loading { opacity: 0.6; pointer-events: none; }
+        .spinner {
+            display: inline-block; width: 20px; height: 20px;
+            border: 3px solid rgba(255,255,255,.3); border-radius: 50%;
+            border-top-color: white; animation: spin 1s ease-in-out infinite;
+            margin-left: 10px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .footer { background: #f5f5f5; padding: 15px; text-align: center; font-size: 12px; color: #666; }
+        
+        @media (max-width: 768px) {
+            .stepper { flex-wrap: wrap; justify-content: center; gap: 10px; }
+            .stepper::before { display: none; } 
+            .step { flex: 0 0 40%; margin-bottom: 8px; flex-direction: row; gap: 8px; }
+            .step-circle { margin-bottom: 0; width: 28px; height: 28px; font-size: 11px; }
+            .step-label { text-align: left; font-size: 10px; white-space: normal; }
+            .step.active::after { display: none !important; }
+            .field-label { min-width: 120px; }
+            .step-tooltip {
+                width: 160px;
+                font-size: 10px;
+                bottom: calc(100% + 14px);
+                left: 0;
+                transform: translateX(0);
+            }
+            .step-tooltip::after {
+                left: 20px;
+                transform: translateX(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Статус ремонта</h1>
+            <p>ООО «ГрандМедтех» — Здесь можно получить информацию о состоянии оборудования, находящегося в ремонте</p>
+        </div>
+        
+        <div class="content">
+            <div class="search-section">
+                <h3>🔍 Поиск по № квитанции</h3>
+                <div class="input-group">
+                    <label for="receipt-id">Введите № квитанции</label>
+                    <input type="text" id="receipt-id" placeholder="Например: 41036">
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" id="btnCheckReceipt" onclick="checkByReceipt()">Проверить</button>
+                    <button class="btn-secondary" onclick="clearForm()">Очистить</button>
+                </div>
+            </div>
+            
+            <div class="search-section">
+                <h3>🏢 Поиск по ID учреждения</h3>
+                <div class="input-group">
+                    <label for="institution-id">Введите ID учреждения</label>
+                    <input type="text" id="institution-id" placeholder="Например: 12345">
+                </div>
+                <div class="button-group">
+                    <button class="btn-primary" id="btnCheckInstitution" onclick="checkByInstitution()">Проверить</button>
+                    <button class="btn-secondary" onclick="clearForm()">Очистить</button>
+                </div>
+            </div>
+            
+            <div class="results-header">Результаты поиска:</div>
+            <div id="results-container">
+                <div class="no-data">🔄 Введите данные и нажмите "Проверить"</div>
+            </div>
+        </div>
+        
+        <div class="footer">Актуальные данные по ремонту · вебхук n8n</div>
+    </div>
+
+    <script>
+        const WEBHOOK_RECEIPT = 'https://n8n.gmtnsk.ru/webhook/0f1113df-c046-450a-9bf8-5ed77f6c19da';
+        const WEBHOOK_INSTITUTION = 'https://n8n.gmtnsk.ru/webhook/62f602d8-3319-40ef-ad4b-696edd331937';
+        
+        const STAGES_ORDER = [
+            "Новая", "Решение о ремонте", "Диагностика, ремонт",
+            "Заказаны ЗЧ", "ЗЧ получена", "Готово", "На выдачу"
+        ];
+
+        // Описания для всплывающих подсказок
+        const STAGE_TOOLTIPS = {
+            "Новая": "Оборудование получено на участок и зарегистрировано.",
+            "Решение о ремонте": "Менеджер дал разрешение на ремонт.",
+            "Диагностика, ремонт": "Оборудование проходит диагностику и последующий ремонт.",
+            "Заказаны ЗЧ": "Оборудование продиагностировано, требуются запасные части / отправлено для ремонта производителю (специализированную организацию).",
+            "ЗЧ получена": "Запасные части получены, ремонт продолжается.",
+            "Готово": "Ремонт выполнен, оформляются документы, выставляются счета.",
+            "На выдачу": "Оборудование можно забирать."
+        };
+
+        async function checkByReceipt() {
+            const id = document.getElementById('receipt-id').value.trim();
+            if (!id) { alert('Пожалуйста, введите номер квитанции'); return; }
+            await fetchData(WEBHOOK_RECEIPT, id, 'receipt');
+        }
+        
+        async function checkByInstitution() {
+            const id = document.getElementById('institution-id').value.trim();
+            if (!id) { alert('Пожалуйста, введите ID учреждения'); return; }
+            await fetchData(WEBHOOK_INSTITUTION, id, 'institution');
+        }
+        
+        async function fetchData(webhookUrl, value, searchType) {
+            showLoading(true);
+            try {
+                const response = await fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ value: value })
+                });
+                
+                if (!response.ok) throw new Error(`Ошибка сервера: ${response.status}`);
+                
+                let data = await response.json();
+                console.log('Raw Response:', data);
+                
+                if (data && typeof data === 'object' && !Array.isArray(data)) {
+                    if (Array.isArray(data.result)) data = data.result;
+                    else if (Array.isArray(data.json)) data = data.json;
+                    else if (Array.isArray(data.items)) data = data.items;
+                    else data = [data];
+                } else if (!Array.isArray(data)) {
+                    data = [];
+                }
+                
+                clearResults();
+                
+                if (data.length === 0) {
+                    displayNoData();
+                    return;
+                }
+                
+                displayResults(data, searchType);
+                
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Ошибка при получении данных: ' + error.message);
+                clearResults();
+                displayNoData();
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function displayResults(items, searchType) {
+            const resultsContainer = document.getElementById('results-container');
+            
+            const searchInfo = document.createElement('div');
+            searchInfo.style.cssText = 'margin-bottom: 15px; padding: 10px; background: #e3f2fd; border-radius: 6px; font-weight: 600; color: #1a73e8;';
+            searchInfo.textContent = searchType === 'receipt' 
+                ? `Найдено записей: ${items.length} (поиск по № квитанции)`
+                : `Найдено записей: ${items.length} (поиск по ID учреждения)`;
+            resultsContainer.appendChild(searchInfo);
+            
+            items.forEach((item) => {
+                const resultBlock = document.createElement('div');
+                resultBlock.className = 'result-item';
+                
+                const ticket = item.ticket || item["№ Квитанции"] || "—";
+                const institution = item.institution || item["Учреждение"] || "—";
+                const equipment = item.equipment || item["Оборудование"] || "—";
+                const stage = item.stage || item.stages || item["Стадия"] || "—";
+                const date = item.date || item["Дата поступления на участок"] || "—";
+
+                const isFinalStage = stage && stage.toLowerCase() === "на выдачу";
+                const stageClass = isFinalStage ? 'field-value stage-highlight final-stage' : 'field-value stage-highlight';
+                const stageHtml = `<span class="${stageClass}">${stage}</span>`;
+
+                let fieldsHtml = `
+                    <div class="result-field">
+                        <span class="field-label">№ Квитанции:</span>
+                        <span class="field-value">${ticket}</span>
+                    </div>
+                    <div class="result-field">
+                        <span class="field-label">Учреждение:</span>
+                        <span class="field-value">${institution}</span>
+                    </div>
+                    <div class="result-field">
+                        <span class="field-label">Оборудование:</span>
+                        <span class="field-value">${equipment}</span>
+                    </div>
+                    <div class="result-field">
+                        <span class="field-label">Стадия:</span>
+                        ${stageHtml}
+                    </div>
+                    <div class="result-field">
+                        <span class="field-label">Дата поступления:</span>
+                        <span class="field-value">${date}</span>
+                    </div>
+                `;
+                
+                resultBlock.innerHTML = fieldsHtml;
+
+                // ---- ПРОГРЕСС-БАР С ПОДСКАЗКАМИ ----
+                const progressWrapper = document.createElement('div');
+                progressWrapper.className = 'progress-wrapper';
+                
+                const title = document.createElement('div');
+                title.className = 'progress-title';
+                title.textContent = 'Текущий статус ремонта';
+                progressWrapper.appendChild(title);
+                
+                const stepperDiv = document.createElement('div');
+                stepperDiv.className = 'stepper';
+                
+                let activeIndex = STAGES_ORDER.findIndex(s => s.toLowerCase() === stage.toLowerCase());
+                if (activeIndex === -1) {
+                    activeIndex = STAGES_ORDER.findIndex(s => 
+                        stage.toLowerCase().includes(s.toLowerCase()) || 
+                        s.toLowerCase().includes(stage.toLowerCase())
+                    );
+                }
+                if (activeIndex === -1) activeIndex = 0;
+
+                STAGES_ORDER.forEach((stageName, index) => {
+                    const isActive = index <= activeIndex;
+                    const isFinal = stageName === "На выдачу";
+                    const stepDiv = document.createElement('div');
+                    stepDiv.className = `step ${isActive ? 'active' : ''} ${isFinal ? 'final-step' : ''}`;
+                    if (isActive && index === activeIndex) {
+                        stepDiv.classList.add('no-line-after');
+                    }
+                    
+                    // Всплывающая подсказка
+                    const tooltipText = STAGE_TOOLTIPS[stageName] || '';
+                    const tooltipDiv = document.createElement('div');
+                    tooltipDiv.className = 'step-tooltip';
+                    tooltipDiv.textContent = tooltipText;
+                    
+                    stepDiv.innerHTML = `<div class="step-circle">${index + 1}</div><div class="step-label">${stageName}</div>`;
+                    stepDiv.appendChild(tooltipDiv);
+                    
+                    stepperDiv.appendChild(stepDiv);
+                });
+                
+                progressWrapper.appendChild(stepperDiv);
+                resultBlock.appendChild(progressWrapper);
+                
+                resultsContainer.appendChild(resultBlock);
+            });
+        }
+
+        function clearResults() { 
+            document.getElementById('results-container').innerHTML = ''; 
+        }
+        
+        function displayNoData() { 
+            document.getElementById('results-container').innerHTML = '<div class="no-data">❌ Данные не найдены</div>'; 
+        }
+        
+        function showLoading(show) {
+            const container = document.querySelector('.container');
+            const btnReceipt = document.getElementById('btnCheckReceipt');
+            const btnInstitution = document.getElementById('btnCheckInstitution');
+            
+            if (show) {
+                container.classList.add('loading');
+                btnReceipt.disabled = true;
+                btnInstitution.disabled = true;
+                btnReceipt.innerHTML = 'Проверка... <span class="spinner"></span>';
+                btnInstitution.innerHTML = 'Проверка... <span class="spinner"></span>';
+            } else {
+                container.classList.remove('loading');
+                btnReceipt.disabled = false;
+                btnInstitution.disabled = false;
+                btnReceipt.innerHTML = 'Проверить';
+                btnInstitution.innerHTML = 'Проверить';
+            }
+        }
+        
+        function clearForm() {
+            document.getElementById('receipt-id').value = '';
+            document.getElementById('institution-id').value = '';
+            clearResults();
+            displayNoData();
+        }
+    </script>
+</body>
+</html>
